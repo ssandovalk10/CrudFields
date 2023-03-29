@@ -5,6 +5,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.bancoCampos.models import FieldsBank
+from django.template.defaultfilters import slugify
 
 import json 
 
@@ -16,10 +17,23 @@ class FieldsBankView(View):
         return super().dispatch(request, *args, **kwargs)
 
     #Devolver todos los registros guardados
-    def get(self, request):
-        camposAll =  FieldsBank.objects.values()
-        camposAll = list(camposAll)
-        data = {'message':"Success",'data': camposAll }
+    def get(self, request, id=0):
+        if(id>0):
+            camposAll = list(FieldsBank.objects.filter(id=id).values())
+            if len(camposAll) >0:
+                campo = camposAll[0]
+                data = {'message':"Success", 'campo': campo }
+            else:
+                data = {'message':"Campo no encontrado" }
+            
+            return JsonResponse(data)
+        else:
+            camposAll =  list(FieldsBank.objects.values())
+            if len(camposAll)>0:
+                data = {'message':"Success", 'data': camposAll }
+            else:
+                data = {'message':"Campo no encontrado" }
+
         return JsonResponse(data)
 
     #Guardar los Registros
@@ -27,16 +41,27 @@ class FieldsBankView(View):
         dataJson = json.loads(request.body)
         FieldsBank.objects.create(
             name=dataJson['name'],
-            slug=dataJson['slug'],
+            slug=slugify(dataJson['name']),
             fieldjson=dataJson['fieldjson']
-        )
-        print(dataJson['name'])      
+        )        
         data = {'message':"Datos Guardados"}
         return JsonResponse(data)
 
     #Actualizar los Registros
-    def put():
-        pass
+    def put(self, request, id):
+        jdata = json.loads(request.body)
+        campo = list(FieldsBank.objects.filter(id=id).values())
+        if len(campo) > 0 :
+            campo = FieldsBank.objects.get(id=id)
+            campo.name = jdata['name']
+            campo.slug = slugify(jdata['name']),
+            campo.fieldjson = jdata['fieldjson']
+            campo.save()
+            data = {'message':"Success"}
+        else :
+            data = {'message':"Campo no encontrado"}
+        
+        return JsonResponse(data)
 
     #Eliminar los Registros
     def delete():
